@@ -14,8 +14,8 @@
    limitations under the License.
 ----------------------------------------------------------------------
 */
-#ifndef SERES_SRC_INCLUDE_FRONTEND_TOKENIZER_H
-#define SERES_SRC_INCLUDE_FRONTEND_TOKENIZER_H
+#ifndef SERES_SRC_INCLUDE_FRONTEND_LEX_H
+#define SERES_SRC_INCLUDE_FRONTEND_LEX_H
 #include <string>
 #include <vector>
 
@@ -46,13 +46,13 @@ struct Token {
   std::string TokenBuffer;
 };
 
-class Tokenizer {
+class Lex {
 
 public:
 
-    Tokenizer() = default;
+    Lex() = default;
 
-    std::vector<Token> FromBuffer(char* Buf, int32_t Length);
+    std::vector<Token> LexFromBuffer(char* Buf, int32_t Length);
 
 private:
 
@@ -125,4 +125,4 @@ private:
 private:
 };
 
-#endif //SERES_SRC_INCLUDE_FRONTEND_TOKENIZER_H
+#endif //SERES_SRC_INCLUDE_FRONTEND_LEX_H

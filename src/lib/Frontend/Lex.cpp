@@ -15,9 +15,9 @@
 ----------------------------------------------------------------------
 */
 #include "Core/Core.h"
-#include "Frontend/Tokenizer.h"
+#include "Frontend/Lex.h"
 
-std::vector<Token> Tokenizer::FromBuffer(char* Buf, int32_t Length)
+std::vector<Token> Lex::LexFromBuffer(char* Buf, int32_t Length)
 {
     std::vector<Token> TokenList;
     int32_t CurrentIndex = 0;

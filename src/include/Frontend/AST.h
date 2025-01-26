@@ -14,19 +14,11 @@
    limitations under the License.
 ----------------------------------------------------------------------
 */
+#ifndef SERES_SRC_INCLUDE_FRONTEND_AST_H
+#define SERES_SRC_INCLUDE_FRONTEND_AST_H
 
-#include <iostream>
-#include "Frontend/Lex.h"
-using namespace std;
+class AST {
 
-int main(int argc, char** argv)
-{
-    Lex tokenizer;
-    std::string Code = "int b = 100; int c =20; int a = b+c; printf(a);";
-    std::vector<Token> Result = tokenizer.LexFromBuffer(&Code[0], Code.length());
-    for (const auto& Token: Result)
-    {
-        cout << "TokenType:" << int(Token.TokenType)<< "TokenStr:" << Token.TokenBuffer << endl;
-    }
-    return 0;
-}
+};
+
+#endif //SERES_SRC_INCLUDE_FRONTEND_AST_H
