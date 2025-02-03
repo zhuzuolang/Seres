@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.13.4)
 project(Seres)
 
+set(LLVM_ENABLE_PROJECTS "clang;clang-tools-extra;lld")
 set(LLVM_DIR ${CMAKE_BINARY_DIR}/third_party/llvm-project-llvmorg-19.1.0/llvm/lib/cmake/llvm CACHE PATH llvm_dir_entry FORCE)
 add_subdirectory(third_party)
 find_package(LLVM REQUIRED CONFIG)
