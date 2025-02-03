@@ -75,6 +75,14 @@ std::vector<Token> Lex::LexFromBuffer(char* Buf, int32_t Length)
             {
                 TokenList.emplace_back(ETokenType::SemiColon, "");
             }
+            else if (Char == '{')
+            {
+                TokenList.emplace_back(ETokenType::LeftBrace, "");
+            }
+            else if (Char == '}')
+            {
+                TokenList.emplace_back(ETokenType::RightBrace, "");
+            }
             else
             {
                 PLATFORM_BREAK();

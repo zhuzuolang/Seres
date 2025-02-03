@@ -17,16 +17,23 @@
 
 #include <iostream>
 #include "Frontend/Lex.h"
+#include "Frontend/AST.h"
 using namespace std;
 
 int main(int argc, char** argv)
 {
     Lex tokenizer;
-    std::string Code = "int b = 100; int c =20; int a = b+c; printf(a);";
+    std::string Code = "int FuncTest(){return 3;} int main() { int b; int c; b = 100; c = 20; int a; a = b+c; printf(a); }";
     std::vector<Token> Result = tokenizer.LexFromBuffer(&Code[0], Code.length());
-    for (const auto& Token: Result)
+    ASTParser Parser;
+    AST_ModuleDef* ModuleDefAST = dynamic_cast<AST_ModuleDef*>(Parser.Parse(Result));
+    for (const auto& FuncDef: ModuleDefAST->FuncDefList)
     {
-        cout << "TokenType:" << int(Token.TokenType)<< "TokenStr:" << Token.TokenBuffer << endl;
+        cout << "FuncName:" <<FuncDef->FuncName<< endl;
     }
+    //    for (const auto& Token: Result)
+    //    {
+    //        cout << "TokenType:" << int(Token.TokenType)<< "TokenStr:" << Token.TokenBuffer << endl;
+    //    }
     return 0;
 }

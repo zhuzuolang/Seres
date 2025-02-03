@@ -27,10 +27,13 @@ enum class ETokenType {
   IntegerLiteral,
   LeftParen,// 左圆括号
   RightParen,// 右圆括号
+  LeftBrace,// 左大括号
+  RightBrace,// 右大括号
   Minus,// 减号
   Plus,// 加号
   Equal,// 等号
   SemiColon,//分号
+  Comma,//逗号
   EndOfFile,
   ErrorToken,
 };

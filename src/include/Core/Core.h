@@ -20,4 +20,9 @@
 
 #define PLATFORM_BREAK() __debugbreak()
 
+#define check(Expr) \
+if(!(Expr)) \
+{ \
+    PLATFORM_BREAK(); \
+}
 #endif //SERES_SRC_INCLUDE_CORE_CORE_H
