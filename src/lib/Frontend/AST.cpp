@@ -78,7 +78,7 @@ AST_Assign* ASTParser::ParseAssign(const std::vector<Token>& Tokens, int32_t& To
         {
             int32_t CurrentTokenIndex = TokenIndex;
             TokenIndex += 4;
-            return new AST_Assign(Tokens[CurrentTokenIndex].TokenBuffer, Tokens[TokenIndex + 2]);
+            return new AST_Assign(Tokens[CurrentTokenIndex].TokenBuffer, Tokens[CurrentTokenIndex + 2]);
         }
         else
         {

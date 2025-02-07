@@ -1,3 +1,5 @@
 file(GLOB SRC_FILES "*.cpp")
 add_library(Frontend STATIC ${SRC_FILES})
+llvm_map_components_to_libnames(llvm_libs Core Support)
+target_link_libraries(Frontend ${llvm_libs})
 target_include_directories(Frontend PRIVATE ${PROJECT_SOURCE_DIR}/include/)

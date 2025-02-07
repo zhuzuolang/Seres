@@ -17,12 +17,32 @@
 #ifndef SERES_SRC_INCLUDE_FRONTEND_AST_H
 #define SERES_SRC_INCLUDE_FRONTEND_AST_H
 #include <vector>
+#include <unordered_map>
+#include <iostream>
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/Support/raw_ostream.h"
 #include "Core/Core.h"
 #include "Lex.h"
+
+struct CodeGenContext {
+  llvm::LLVMContext* Context;
+  llvm::Module* Module;
+  llvm::IRBuilder<>* IRBuilder;
+  llvm::StringMap<llvm::AllocaInst*> SymbolTables;
+};
 
 struct AST {
 
   virtual ~AST() = default;
+
+  virtual void GenCode(CodeGenContext& CodeGenContext)
+  {
+
+  }
 };
 
 enum class EReturnType {
@@ -48,7 +68,22 @@ struct AST_Type : public AST {
   {
 
   }
-
+  llvm::Type* GenLLVMType(CodeGenContext& CodeGenContext)
+  {
+      if (TypeName == "int")
+      {
+          return llvm::Type::getInt32Ty(*CodeGenContext.Context);
+      }
+      else if (TypeName == "float")
+      {
+          return llvm::Type::getFloatTy(*CodeGenContext.Context);
+      }
+      else
+      {
+          check(false);
+          return nullptr;
+      }
+  }
   std::string TypeName;
 };
 
@@ -59,6 +94,12 @@ struct AST_VariableDef : public AST {
         VariableName(InVarName)
   {
 
+  }
+
+  void GenCode(CodeGenContext& InCodeGenContext) override
+  {
+      llvm::AllocaInst* VariableDefInst = InCodeGenContext.IRBuilder->CreateAlloca(TypeAST->GenLLVMType(InCodeGenContext), nullptr, VariableName);
+      InCodeGenContext.SymbolTables[VariableName] = VariableDefInst;
   }
   AST_Type* TypeAST = nullptr;
   std::string VariableName;
@@ -77,6 +118,15 @@ struct AST_Arithmetic : public AST {
   {
 
   }
+
+  llvm::Value* GenValue(CodeGenContext& InCodeGenContext)
+  {
+      llvm::AllocaInst* LeftInst = InCodeGenContext.SymbolTables.lookup(LeftVarName);
+      llvm::AllocaInst* RightInst = InCodeGenContext.SymbolTables.lookup(RightVarName);
+      llvm::Value* LeftVar = InCodeGenContext.IRBuilder->CreateLoad(LeftInst->getAllocatedType(), LeftInst);
+      llvm::Value* RightVar = InCodeGenContext.IRBuilder->CreateLoad(RightInst->getAllocatedType(), RightInst);
+      return InCodeGenContext.IRBuilder->CreateAdd(LeftVar, RightVar);
+  }
   std::string LeftVarName;
   std::string RightVarName;
   EArithmeticType ArithmeticType;
@@ -93,10 +143,30 @@ struct AST_Assign : public AST {
   }
   AST_Assign(std::string InAssignedVarName, AST_Arithmetic* InArithmeticAST) :
       bAssignLiteral(false),
+      AssignedVarName(InAssignedVarName),
       AssignLiteral(Token(ETokenType::None, "")),
       ArithmeticAST(InArithmeticAST)
   {
 
+  }
+
+  void GenCode(CodeGenContext& InCodeGenContext) override
+  {
+      if (bAssignLiteral)
+      {
+          if (AssignLiteral.TokenType == ETokenType::IntegerLiteral)
+          {
+              llvm::AllocaInst* AllocaInst = InCodeGenContext.SymbolTables.lookup(AssignedVarName);
+              llvm::Value* AssignValue = llvm::ConstantInt::get(AllocaInst->getOperand(0)->getType(), std::atoi(AssignLiteral.TokenBuffer.c_str()));
+              InCodeGenContext.IRBuilder->CreateStore(AssignValue, AllocaInst);
+          }
+      }
+      else
+      {
+          llvm::AllocaInst* AllocaInst = InCodeGenContext.SymbolTables.lookup(AssignedVarName);
+          llvm::Value* AssignValue = ArithmeticAST->GenValue(InCodeGenContext);
+          InCodeGenContext.IRBuilder->CreateStore(AssignValue, AllocaInst);
+      }
   }
   bool bAssignLiteral;
   std::string AssignedVarName;
@@ -136,6 +206,14 @@ struct AST_Statement : public AST {
   {
 
   }
+  void GenCode(CodeGenContext& InCodeGenContext) override
+  {
+      for (AST* Ast: Statements)
+      {
+          Ast->GenCode(InCodeGenContext);
+      }
+  }
+
   std::vector<AST*> Statements;
 };
 
@@ -146,6 +224,31 @@ struct AST_FuncDef : public AST {
       StatementAST(InStatementAST)
   {
 
+  }
+
+  void GenCode(CodeGenContext& InCodeGenContext) override
+  {
+      llvm::IRBuilder<> IRBuilder(*InCodeGenContext.Context);
+      CodeGenContext NewCodeGenContext;
+      NewCodeGenContext.Context = InCodeGenContext.Context;
+      NewCodeGenContext.Module = InCodeGenContext.Module;
+      NewCodeGenContext.IRBuilder = &IRBuilder;
+
+      llvm::Type* ReturnType = ReturnTypeAST->GenLLVMType(NewCodeGenContext);
+      llvm::FunctionType* FuncType = llvm::FunctionType::get(
+          ReturnType,
+          {},
+          false
+      );
+      llvm::Function* Func = llvm::Function::Create(
+          FuncType,
+          llvm::Function::ExternalLinkage,
+          FuncName,
+          NewCodeGenContext.Module
+      );
+      llvm::BasicBlock* entryBB = llvm::BasicBlock::Create(*NewCodeGenContext.Context, "entry", Func);
+      NewCodeGenContext.IRBuilder->SetInsertPoint(entryBB);
+      StatementAST->GenCode(NewCodeGenContext);
   }
 
   std::string FuncName;
@@ -159,6 +262,26 @@ struct AST_ModuleDef : public AST {
   {
 
   }
+
+  void StartGenCode()
+  {
+      CodeGenContext NewCodeGenContext;
+      llvm::LLVMContext Context;
+      llvm::Module* CurrentModule = new llvm::Module("TestModule", Context);
+      NewCodeGenContext.Context = &Context;
+      NewCodeGenContext.Module = CurrentModule;
+      for (AST_FuncDef* AstFuncDef: FuncDefList)
+      {
+          AstFuncDef->GenCode(NewCodeGenContext);
+      }
+
+      std::string temp_str;
+      llvm::raw_string_ostream rso(temp_str);
+      NewCodeGenContext.Module->print(rso, nullptr);
+      std::string s = rso.str();
+      std::cout << s << std::endl;
+  }
+
   std::vector<AST_FuncDef*> FuncDefList;
 };
 
