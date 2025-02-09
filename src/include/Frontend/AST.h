@@ -24,6 +24,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Verifier.h"
 #include "llvm/Support/raw_ostream.h"
 #include "Core/Core.h"
 #include "Lex.h"
@@ -57,6 +58,11 @@ struct AST_Return : public AST {
       ReturnVariableName(InVariableName)
   {
 
+  }
+  void GenCode(CodeGenContext& InCodeGenContext) override
+  {
+      llvm::Value *retValue = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*InCodeGenContext.Context), 0);
+      InCodeGenContext.IRBuilder->CreateRet(retValue);
   }
   EReturnType ReturnType;
   std::string ReturnVariableName;
@@ -310,6 +316,10 @@ struct AST_FuncDef : public AST {
       llvm::BasicBlock* entryBB = llvm::BasicBlock::Create(*NewCodeGenContext.Context, "entry", Func);
       NewCodeGenContext.IRBuilder->SetInsertPoint(entryBB);
       StatementAST->GenCode(NewCodeGenContext);
+      if (llvm::verifyFunction(*Func, &llvm::errs())) {
+          llvm::errs() << "函数验证失败！\n";
+          check(false);
+      }
   }
 
   std::string FuncName;
@@ -324,10 +334,9 @@ struct AST_ModuleDef : public AST {
 
   }
 
-  void StartGenCode()
+  CodeGenContext StartGenCode(llvm::LLVMContext& Context)
   {
       CodeGenContext NewCodeGenContext;
-      llvm::LLVMContext Context;
       llvm::Module* CurrentModule = new llvm::Module("TestModule", Context);
       NewCodeGenContext.Context = &Context;
       NewCodeGenContext.Module = CurrentModule;
@@ -335,12 +344,17 @@ struct AST_ModuleDef : public AST {
       {
           AstFuncDef->GenCode(NewCodeGenContext);
       }
+      if (llvm::verifyModule(*NewCodeGenContext.Module, &llvm::errs())) {
+          llvm::errs() << "模块验证失败！\n";
+          check(false);
+      }
+      return NewCodeGenContext;
 
-      std::string temp_str;
-      llvm::raw_string_ostream rso(temp_str);
-      NewCodeGenContext.Module->print(rso, nullptr);
-      std::string s = rso.str();
-      std::cout << s << std::endl;
+      //      std::string temp_str;
+      //      llvm::raw_string_ostream rso(temp_str);
+      //      NewCodeGenContext.Module->print(rso, nullptr);
+      //      std::string s = rso.str();
+      //      std::cout << s << std::endl;
   }
 
   std::vector<AST_FuncDef*> FuncDefList;

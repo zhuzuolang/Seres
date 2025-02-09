@@ -14,5 +14,6 @@ add_definitions(${LLVM_DEFINITIONS})
 add_subdirectory(lib)
 add_executable(main.exe main.cpp)
 
-target_link_libraries(main.exe Frontend)
+llvm_map_components_to_libnames(llvm_libs all)
+target_link_libraries(main.exe Frontend ${llvm_libs})
 target_include_directories(main.exe PRIVATE ${PROJECT_SOURCE_DIR}/include/)
