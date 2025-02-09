@@ -110,6 +110,7 @@ int main(int argc, char** argv)
     auto Features = "";
 
     llvm::TargetOptions opt;
+    //todo 这里编译为static链接会报错
     auto RM =llvm::Reloc::Model::PIC_;
     auto TheTargetMachine =
         Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
