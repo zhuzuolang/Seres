@@ -111,6 +111,7 @@ int main(int argc, char** argv)
 
     llvm::TargetOptions opt;
     //todo 这里编译为static链接会报错
+    // /entry:main ,否则default为CRTMainStartup
     auto RM =llvm::Reloc::Model::PIC_;
     auto TheTargetMachine =
         Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
