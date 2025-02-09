@@ -125,7 +125,19 @@ struct AST_Arithmetic : public AST {
       llvm::AllocaInst* RightInst = InCodeGenContext.SymbolTables.lookup(RightVarName);
       llvm::Value* LeftVar = InCodeGenContext.IRBuilder->CreateLoad(LeftInst->getAllocatedType(), LeftInst);
       llvm::Value* RightVar = InCodeGenContext.IRBuilder->CreateLoad(RightInst->getAllocatedType(), RightInst);
-      return InCodeGenContext.IRBuilder->CreateAdd(LeftVar, RightVar);
+      if (ArithmeticType == EArithmeticType::Plus)
+      {
+          return InCodeGenContext.IRBuilder->CreateAdd(LeftVar, RightVar);
+      }
+      else if (ArithmeticType == EArithmeticType::Minus)
+      {
+          //todo
+          return InCodeGenContext.IRBuilder->CreateAdd(LeftVar, RightVar);
+      }
+      else
+      {
+          check(false);
+      }
   }
   std::string LeftVarName;
   std::string RightVarName;
@@ -186,6 +198,25 @@ struct AST_ParameterCallList : public AST {
   {
 
   }
+
+  std::vector<llvm::Value*> GenParameterValueList(CodeGenContext& InCodeGenContext)
+  {
+      std::vector<llvm::Value*> Result;
+      for (auto& Parameter: ParameterCallList)
+      {
+          if (Parameter.TokenType == ETokenType::Identifier)
+          {
+              llvm::AllocaInst* AllocaInst = InCodeGenContext.SymbolTables.lookup(Parameter.TokenBuffer);
+              llvm::Value* Var = InCodeGenContext.IRBuilder->CreateLoad(AllocaInst->getAllocatedType(), AllocaInst);
+              Result.push_back(Var);
+          }
+          else
+          {
+              check(false);
+          }
+      }
+      return Result;
+  }
   std::vector<Token> ParameterCallList;
 };
 
@@ -196,6 +227,36 @@ struct AST_FuncCall : public AST {
   {
 
   }
+  void GenCode(CodeGenContext& InCodeGenContext) override
+  {
+      llvm::FunctionType* printfType = llvm::FunctionType::get(
+          InCodeGenContext.IRBuilder->getInt32Ty(),
+          {InCodeGenContext.IRBuilder->getPtrTy()},
+          true
+      );
+      llvm::Function* printfFunc = llvm::Function::Create(
+          printfType,
+          llvm::Function::ExternalLinkage,
+          "printf",
+          InCodeGenContext.Module
+      );
+      std::vector<llvm::Value*> FormatedParameterList = ParameterCallList->GenParameterValueList(InCodeGenContext);
+      std::string FormatStr;
+      for (int i = 0; i < FormatedParameterList.size(); i++)
+      {
+          FormatStr += "%d ";
+      }
+      FormatStr += "\n";
+      std::vector<llvm::Value*> CallParameterList;
+      llvm::Value* str = InCodeGenContext.IRBuilder->CreateGlobalStringPtr(FormatStr, "str");
+      CallParameterList.push_back(str);
+      for (auto&& Value: FormatedParameterList)
+      {
+          CallParameterList.push_back(Value);
+      }
+      InCodeGenContext.IRBuilder->CreateCall(printfFunc, CallParameterList);
+  }
+
   std::string FuncName;
   AST_ParameterCallList* ParameterCallList;
 };

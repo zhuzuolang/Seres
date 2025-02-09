@@ -237,11 +237,11 @@ AST_ParameterCallList* ASTParser::ParseParameterCallList(const std::vector<Token
         while (!Match(Tokens, CurrentTokenIndex, ETokenType::RightParen))
         {
             bool bMatchIdentifier = Match(Tokens, CurrentTokenIndex, ETokenType::Identifier);
-            bool bMatchComma = Match(Tokens, CurrentTokenIndex, ETokenType::Comma);
             if (bMatchIdentifier)
             {
-                CurrentTokenIndex += 1;
                 ParameterCallList.push_back(Tokens[CurrentTokenIndex]);
+                CurrentTokenIndex += 1;
+                bool bMatchComma = Match(Tokens, CurrentTokenIndex, ETokenType::Comma);
                 if (bMatchComma)
                 {
                     CurrentTokenIndex += 1;
