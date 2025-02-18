@@ -5,6 +5,94 @@ declaration
     | type_declaration
     | EMPTY
 
+type_declaration
+    | struct_declaration
+    | class_declaration
+    | template_declaration
+
+template_declaration
+    | template '<' template_arg_list '>' variable_declaration
+    | template '<' template_arg_list '>' function_declaration
+    | template '<' template_arg_list '>' type_declaration
+
+template_arg_list
+    | named_type_expression ',' template_arg_list
+    | named_type_expression
+    | typename IDENTIFIER ',' template_arg_list
+    | typename IDENTIFIER
+    | EMPTY
+
+struct_declaration
+    | STRUCT IDENTIFIER '{' statements '}'
+
+class_declaration
+    | CLASS IDENTIFIER '{' statements '}'
+    | decorator_list class_declaration
+
+block
+    | '{' statement '}'
+
+statement
+    | compound_stmt
+    | simple_stmts
+
+simple_stmt
+    | assignment
+    | type_alias
+    | return_stmt
+    | import_stmt
+    | raise_stmt
+    | PASS
+    | yield_stmt
+    | BREAK
+    | CONTINUE
+
+assignment
+    | nonempty_named_type_expression_list '=' nonempty_value_expression_list ';'
+    | nonempty_value_expression_list '=' nonempty_value_expression_list ';'
+
+type_alias
+    | USING IDENTIFIER = type_expression ';'
+
+return_stmt
+    | RETURN value_expression_list ';'
+
+import_stmt
+    | IMPORT names
+    | IMPORT names AS IDENTIFIER
+    | FROM names IMPORT names AS IDENTIFIER
+
+raise_stmt
+    |
+compound_stmt
+    | declaration
+    | if_stmt
+    | for_stmt
+    | try_stmt
+    | while_stmt
+    | match_stmt
+
+if_stmt
+    | IF '(' value_expression ')' block else_statement
+
+else_statement
+    | ELSE block
+    | ELIF  block else_statement
+
+for_stmt
+    | FOR '(' value_expression ':' value_expression ')' block
+    | FOR '(' value_expression ';' value_expression ';' value_expression ')' block
+
+try_stmt
+    | TRY block finally_block
+    | TRY block except_block_list
+    | TRY block except_block_list ELSE block
+    | TRY block except_block_list ELSE block FINALLY block
+
+while_stmt
+    | WHILE '(' value_expression ')' block
+    | DO block WHILE '(' value_expression ')'
+
 variable_declaration
     | type_expression value_expression;
     | type_expression value_expression = value_expression;
@@ -12,7 +100,7 @@ variable_declaration
 type_expression_list
     | type_expression ',' type_expression_list
     | type_expression
-    
+
 type_expression
     | base_type
     | compound_type
@@ -22,36 +110,65 @@ base_type
     | INTEGER
     | BOOL
     | void
-    | 
+    |
 
 compound_type
-    | NAMES
+    | names
     | template_type
 
 template_type
-    | NAMES '<' type_expression_list '>'
+    | names '<' type_expression_list '>'
 
-NAMES
+names
     | IDENTIFIER
-    | NAMES.IDENTIFIER
-    | NAMES::IDENTIFIER
-    
+    | names.IDENTIFIER
+    | names::IDENTIFIER
+
 function_declaration
-    | func type_expression_list IDENTIFIER '(' named_type_expression_list ')' '{' statements '}'
+    | func '[' type_expression_list ']' IDENTIFIER '(' named_type_expression_list ')' '{' statements '}'
+    | func type_expression IDENTIFIER '(' named_type_expression_list ')' '{' statements '}'
     | attribute_declaration function_declaration
-    | decorated function_declaration
-    | ast_modifier function_declaration
-    
+    | decorator_list function_declaration
+
+attribute_declaration
+    | '(' attribute_list ')'
+
+attribute_list
+    | attribute
+    | attribute ',' attribute_list
+
+attribute
+    | EMPTY
+    | constexpr
+    | inline
+    | pure
+    | compiletime
+
+decorator_list
+    | decorator decorator_list
+    | EMPTY
+
+decorator
+    | '@'names
+    | '@'names '(' value_expression_list ')'
+
 named_type_expression_list
     | named_type_expression ',' named_type_expression_list
     | named_type_expression
+    | EMPTY
+
+nonempty_named_type_expression_list
+    | named_type_expression ',' named_type_expression_list
+    | named_type_expression
+
+nonempty_value_expression_list
+    | value_expression
+    | value_expression ',' value_expression_list
+
+value_expression_list
+    | EMPTY
+    | value_expression
+    | value_expression ',' value_expression_list
 
 named_type_expression
-    | base_type IDENTIFIER
-    | compound_type IDENTIFIER
-    | type_expression * IDENTIFIER
-    
-int a = 1+1;
-get_type(1) a = 2;
-
-std::array<4>
+    | type_expression IDENTIFIER
