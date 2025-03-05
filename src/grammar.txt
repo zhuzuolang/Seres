@@ -42,14 +42,79 @@ simple_stmt
     | return_stmt
     | import_stmt
     | raise_stmt
+    | arithmetic_stmt
     | PASS
     | yield_stmt
     | BREAK
     | CONTINUE
 
+arithmetic_stmt
+    | bitwise_or
+
+bitwise_or:
+    | bitwise_or '|' bitwise_xor
+    | bitwise_xor
+
+bitwise_xor:
+    | bitwise_xor '^' bitwise_and
+    | bitwise_and
+
+bitwise_and:
+    | bitwise_and '&' shift_expr
+    | shift_expr
+
+shift_expr:
+    | shift_expr '<<' sum
+    | shift_expr '>>' sum
+    | sum
+
+sum:
+    | sum '+' term
+    | sum '-' term
+    | term
+
+term:
+    | term '*' factor
+    | term '/' factor
+    | term '//' factor
+    | term '%' factor
+    | term '@' factor
+    | term ',' factor
+    | factor
+
+factor:
+    | '+' factor
+    | '-' factor
+    | '~' factor
+    | '!' factor
+    | power
+
+power:
+    | primary '**' factor
+    | primary
+
+primary:
+    | primary '[' value_expression ']' //下标运算符
+    | primary '{' value_expression '}' //todo 是否需要大括号运算符?
+    | value_expression
+
+value_expression
+    | ternary
+    | function_call_expression
+    | LITERAL
+    | '(' value_expression ')'
+    | value_expression '.' names
+    | names
+
+ternary
+    | value_expression '?' value_expression ':' value_expression
+
+function_call_expression
+    | names '(' function_call_args_list ')'
+
 assignment
-    | nonempty_named_type_expression_list '=' nonempty_value_expression_list ';'
-    | nonempty_value_expression_list '=' nonempty_value_expression_list ';'
+    | nonempty_named_type_expression_list '=' nonempty_value_expression_list
+    | nonempty_value_expression_list '=' nonempty_value_expression_list
 
 type_alias
     | USING IDENTIFIER = type_expression ';'
@@ -64,6 +129,7 @@ import_stmt
 
 raise_stmt
     |
+
 compound_stmt
     | declaration
     | if_stmt
@@ -125,10 +191,22 @@ names
     | names::IDENTIFIER
 
 function_declaration
-    | func '[' type_expression_list ']' IDENTIFIER '(' named_type_expression_list ')' '{' statements '}'
-    | func type_expression IDENTIFIER '(' named_type_expression_list ')' '{' statements '}'
+    | func '[' type_expression_list ']' IDENTIFIER '(' function_declaration_args_list ')' '{' statements '}'
+    | func type_expression IDENTIFIER '(' function_declaration_args_list ')' '{' statements '}'
     | attribute_declaration function_declaration
     | decorator_list function_declaration
+
+function_declaration_args_list
+    | named_type_expression ',' function_declaration_args_list
+    | named_type_expression '=' value_expression
+    | named_type_expression
+    | EMPTY
+
+function_call_args_list
+    | value_expression_list ',' function_call_args_list
+    | IDENTIFIER '=' value_expression_list
+    | value_expression_list
+    | EMPTY
 
 attribute_declaration
     | '(' attribute_list ')'
