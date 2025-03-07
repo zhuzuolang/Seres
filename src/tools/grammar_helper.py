@@ -2,8 +2,8 @@ import os
 
 
 class TokenType(object):
-	Generator = 1,
-	Token = 2,
+	Generator = 1
+	Token = 2
 	Literal = 3
 	Separator = 4
 
@@ -13,9 +13,30 @@ class Token(object):
 	def __init__(self, token_str, token_type):
 		self.token_str = token_str
 		self.token_type = token_type
+	
+	def __hash__(self):
+		return hash(self.token_str + ":" + str(self.token_type))
+	
+	def __eq__(self, other):
+		return self.token_type == other.token_type and self.token_str == other.token_str
+	
+	def __str__(self):
+		return "{}:{}".format(self.token_str, self.token_type)
+	
+	def IsEmpty(self):
+		return self.token_type == TokenType.Token and self.token_str == "EMPTY"
+	
+	def IsTerminal(self):
+		return self.token_type == TokenType.Token
+	
+	def IsNonEmptyTerminal(self):
+		return self.token_type == TokenType.Token and self.token_str != "EMPTY"
+	
+	def IsGenerator(self):
+		return self.token_type == TokenType.Generator
 
 
-class GeneratorMap(object):
+class Tokenizer(object):
 	
 	def __init__(self, grammar_file):
 		self.token_list = []
@@ -50,6 +71,7 @@ class GeneratorMap(object):
 		while self.current_line_index < len(line) and line[self.current_line_index] != '\'':
 			token_str += line[self.current_line_index]
 			self.current_line_index += 1
+		self.current_line_index += 1
 		return Token(token_str, TokenType.Literal)
 	
 	def ParseToken(self, line):
@@ -71,28 +93,75 @@ class GeneratorMap(object):
 		pass
 
 
+class Production(object):
+	
+	def __init__(self, left, reduce_list):
+		self.left = left
+		self.reduce = reduce_list
+	
+	def __str__(self):
+		return "{}:{}".format(self.left.token_str, self.reduce)
+
+
 class GrammarValidator(object):
 	
-	def __init__(self, in_generator_map):
-		self.generator_map = in_generator_map
+	def __init__(self, in_tokenizer):
+		self.tokenizer = in_tokenizer
+		self.productions = {}
+		
+		index = 0
+		while index < len(self.tokenizer.token_list):
+			if len(self.tokenizer.token_list[index]) == 1:
+				left = self.tokenizer.token_list[index][0]
+				reduce = []
+				index += 1
+				while index < len(self.tokenizer.token_list) and len(self.tokenizer.token_list[index]) > 1:
+					reduce.append(self.tokenizer.token_list[index][1:])
+					index += 1
+				self.productions[left] = Production(left, reduce)
+			else:
+				raise RuntimeError
+		
+		for left, production in self.productions.items():
+			first_set = self.GenerateProductionFirst(production)
+			print(first_set)
+	
+	def GenerateProductionFirst(self, production):
+		first_set = set()
+		for reduce in production.reduce:
+			first_set.update(self.GenerateReduceFirst(reduce))
+		return first_set
+	
+	def ExistEmpty(self, token_set):
+		for token in token_set:
+			if token.IsEmpty():
+				return True
+		return False
+	
+	def GenerateReduceFirst(self, reduce):
+		first_set = set()
+		for token in reduce:
+			if token.IsNonEmptyTerminal():
+				first_set.add(token)
+				break
+			if token.IsGenerator():
+				production = self.productions[token]
+				production_set = self.GenerateProductionFirst(production)
+				first_set.update(production_set)
+				if self.ExistEmpty(first_set):
+					continue
+				else:
+					break
+		return first_set
 	
 	def CheckLLK(self):
 		pass
 
 
-class GrammarGenerator(object):
-	
-	def __init__(self, in_generator_map):
-		self.generator_map = in_generator_map
-	
-	def GenerateFirst(self):
-		pass
-
-
 if __name__ == '__main__':
-	generator_map = GeneratorMap("G:/github/HybridLLVM/src/test\code1.txt")
-	for token in generator_map.token_list:
-		print(token[0].token_str, token[0].token_type)
+	tokenizer = Tokenizer("G:/github/HybridLLVM/src/test\code1.txt")
+	# for token in tokenizer.token_list:
+	# 	print([str(t) for t in token])
 	
-	validator = GrammarValidator(generator_map)
+	validator = GrammarValidator(tokenizer)
 	validator.CheckLLK()
