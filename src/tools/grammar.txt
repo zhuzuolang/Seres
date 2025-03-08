@@ -11,15 +11,15 @@ type_declaration
     | template_declaration
 
 template_declaration
-    | template '<' template_arg_list '>' variable_declaration
-    | template '<' template_arg_list '>' function_declaration
-    | template '<' template_arg_list '>' type_declaration
+    | TEMPLATE '<' template_arg_list '>' variable_declaration
+    | TEMPLATE '<' template_arg_list '>' function_declaration
+    | TEMPLATE '<' template_arg_list '>' type_declaration
 
 template_arg_list
     | named_type_expression ',' template_arg_list
     | named_type_expression
-    | typename IDENTIFIER ',' template_arg_list
-    | typename IDENTIFIER
+    | TYPENAME IDENTIFIER ',' template_arg_list
+    | TYPENAME IDENTIFIER
     | EMPTY
 
 struct_declaration
@@ -51,29 +51,29 @@ simple_stmt
 arithmetic_stmt
     | bitwise_or
 
-bitwise_or:
+bitwise_or
     | bitwise_or '|' bitwise_xor
     | bitwise_xor
 
-bitwise_xor:
+bitwise_xor
     | bitwise_xor '^' bitwise_and
     | bitwise_and
 
-bitwise_and:
+bitwise_and
     | bitwise_and '&' shift_expr
     | shift_expr
 
-shift_expr:
+shift_expr
     | shift_expr '<<' sum
     | shift_expr '>>' sum
     | sum
 
-sum:
+sum
     | sum '+' term
     | sum '-' term
     | term
 
-term:
+term
     | term '*' factor
     | term '/' factor
     | term '//' factor
@@ -82,18 +82,18 @@ term:
     | term ',' factor
     | factor
 
-factor:
+factor
     | '+' factor
     | '-' factor
     | '~' factor
     | '!' factor
     | power
 
-power:
+power
     | primary '**' factor
     | primary
 
-primary:
+primary
     | primary '[' value_expression ']' //下标运算符
     | primary '{' value_expression '}' //todo 是否需要大括号运算符?
     | value_expression
@@ -117,10 +117,10 @@ assignment
     | nonempty_value_expression_list '=' nonempty_value_expression_list
 
 type_alias
-    | USING IDENTIFIER = type_expression ';'
+    | USING IDENTIFIER '=' type_expression
 
 return_stmt
-    | RETURN value_expression_list ';'
+    | RETURN value_expression_list
 
 import_stmt
     | IMPORT names
@@ -128,7 +128,7 @@ import_stmt
     | FROM names IMPORT names AS IDENTIFIER
 
 raise_stmt
-    |
+    | RAISE value_expression
 
 compound_stmt
     | declaration
@@ -160,8 +160,8 @@ while_stmt
     | DO block WHILE '(' value_expression ')'
 
 variable_declaration
-    | type_expression value_expression;
-    | type_expression value_expression = value_expression;
+    | type_expression value_expression
+    | type_expression value_expression '=' value_expression
 
 type_expression_list
     | type_expression ',' type_expression_list
@@ -170,13 +170,12 @@ type_expression_list
 type_expression
     | base_type
     | compound_type
-    | type_expression *
+    | type_expression '*'
 
 base_type
     | INTEGER
     | BOOL
-    | void
-    |
+    | VOID
 
 compound_type
     | names
@@ -186,13 +185,16 @@ template_type
     | names '<' type_expression_list '>'
 
 names
-    | IDENTIFIER
-    | names.IDENTIFIER
-    | names::IDENTIFIER
+    | IDENTIFIER name_tail
+
+name_tail
+    | EMPTY
+    | '.' names
+    | '::' names
 
 function_declaration
-    | func '[' type_expression_list ']' IDENTIFIER '(' function_declaration_args_list ')' '{' statements '}'
-    | func type_expression IDENTIFIER '(' function_declaration_args_list ')' '{' statements '}'
+    | FUNC '[' type_expression_list ']' IDENTIFIER '(' function_declaration_args_list ')' '{' statements '}'
+    | FUNC type_expression IDENTIFIER '(' function_declaration_args_list ')' '{' statements '}'
     | attribute_declaration function_declaration
     | decorator_list function_declaration
 

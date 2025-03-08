@@ -27,13 +27,16 @@ class Token(object):
 		return self.token_type == TokenType.Token and self.token_str == "EMPTY"
 	
 	def IsTerminal(self):
-		return self.token_type == TokenType.Token
+		return self.token_type == TokenType.Token or self.IsLiteral()
 	
 	def IsNonEmptyTerminal(self):
-		return self.token_type == TokenType.Token and self.token_str != "EMPTY"
+		return (self.token_type == TokenType.Token and self.token_str != "EMPTY") or self.IsLiteral()
 	
 	def IsGenerator(self):
 		return self.token_type == TokenType.Generator
+	
+	def IsLiteral(self):
+		return self.token_type == TokenType.Literal
 
 
 class Tokenizer(object):
@@ -122,15 +125,32 @@ class GrammarValidator(object):
 			else:
 				raise RuntimeError
 		
-		for left, production in self.productions.items():
-			first_set = self.GenerateProductionFirst(production)
-			print(first_set)
+		self.first_map = dict()
+		self.GenerateProductionFirst()
 	
-	def GenerateProductionFirst(self, production):
-		first_set = set()
-		for reduce in production.reduce:
-			first_set.update(self.GenerateReduceFirst(reduce))
-		return first_set
+	def GenerateProductionFirst(self):
+		self.first_map = dict()
+		
+		contain_changed = True
+		while contain_changed:
+			contain_changed = False
+			for left, production in self.productions.items():
+				if left not in self.first_map:
+					self.first_map[left] = [set() for i in range(len(production.reduce))]
+					contain_changed = True
+				
+				for idx, reduce in enumerate(production.reduce):
+					new_set = self.GenerateReduceFirst(reduce)
+					old_set_count = len(self.first_map[left][idx])
+					self.first_map[left][idx].update(new_set)
+					new_set_count = len(self.first_map[left][idx])
+					
+					if new_set_count > old_set_count:
+						contain_changed = True
+		
+		for key, value in self.first_map.items():
+			for list in value:
+				print(key.token_str, "->", [token.token_str for token in list])
 	
 	def ExistEmpty(self, token_set):
 		for token in token_set:
@@ -140,19 +160,40 @@ class GrammarValidator(object):
 	
 	def GenerateReduceFirst(self, reduce):
 		first_set = set()
-		for token in reduce:
+		contain_empty_count = 0
+		
+		for idx, token in enumerate(reduce):
+			current_reduce_contain_empty = False
 			if token.IsNonEmptyTerminal():
 				first_set.add(token)
 				break
+			
+			if token.IsEmpty():
+				current_reduce_contain_empty = True
+				first_set.add(token)
+				contain_empty_count += 1
+				continue
+			
 			if token.IsGenerator():
-				production = self.productions[token]
-				production_set = self.GenerateProductionFirst(production)
-				first_set.update(production_set)
-				if self.ExistEmpty(first_set):
-					continue
-				else:
-					break
-		return first_set
+				exist_empty = False
+				for reduce_first_set in self.first_map.get(token, []):
+					first_set.update(reduce_first_set)
+					if self.ExistEmpty(reduce_first_set):
+						exist_empty = True
+				if exist_empty:
+					contain_empty_count += 1
+					current_reduce_contain_empty = True
+			
+			if not current_reduce_contain_empty:
+				break
+		if contain_empty_count >= len(reduce):
+			return first_set
+		else:
+			new_set = set()
+			for token in first_set:
+				if not token.IsEmpty():
+					new_set.add(token)
+			return new_set
 	
 	def CheckLLK(self):
 		pass
