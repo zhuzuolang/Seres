@@ -7,6 +7,7 @@ class TokenType(object):
     Literal = 3
     Separator = 4
     Placeholder = 5
+    EMPTY = 6
 
 
 class Token(object):
@@ -28,13 +29,16 @@ class Token(object):
             return "{}".format(self.token_str)
 
     def IsEmpty(self):
-        return self.token_type == TokenType.Token and self.token_str == "EMPTY"
+        return self.token_type == TokenType.EMPTY
+
+    def IsPlaceHolder(self):
+        return self.token_type == TokenType.Placeholder
 
     def IsTerminal(self):
-        return self.token_type == TokenType.Token or self.IsLiteral()
+        return self.IsNonEmptyTerminal() or self.IsEmpty()
 
     def IsNonEmptyTerminal(self):
-        return (self.token_type == TokenType.Token and self.token_str != "EMPTY") or self.IsLiteral()
+        return self.token_type == TokenType.Token or self.IsLiteral()
 
     def IsGenerator(self):
         return self.token_type == TokenType.Generator
@@ -44,6 +48,7 @@ class Token(object):
 
 
 TOKEN_PLACE_HOLD = Token("placeholder", TokenType.Placeholder)
+TOKEN_EMPTY = Token("EMPTY", TokenType.EMPTY)
 
 
 class Tokenizer(object):
@@ -95,7 +100,10 @@ class Tokenizer(object):
                 break
 
         if token_str.isupper():
-            return Token(token_str, TokenType.Token)
+            if token_str == "EMPTY":
+                return TOKEN_EMPTY
+            else:
+                return Token(token_str, TokenType.Token)
         else:
             return Token(token_str, TokenType.Generator)
 
@@ -110,6 +118,9 @@ class Reduce(object):
 
     def __iter__(self):
         return iter(self.reduce_token_list)
+
+    def __len__(self):
+        return len(self.reduce_token_list)
 
 
 class Production(object):
@@ -143,30 +154,88 @@ class FirstSetKey(object):
 
 
 class FirstSetValue(object):
-    def __init__(self, token_list):
-        self.token_tuple = tuple(token_list)
+    def __init__(self, token_list, k):
+        if len(token_list) < k:
+            raise RuntimeError
+        token_list = token_list[0:k]
+        self.token_list = token_list
+        self.k = k
+
+    def __iter__(self):
+        return iter(self.token_list)
 
     def __hash__(self):
-        return hash(self.token_tuple)
+        return hash(tuple(self.token_list))
 
     def __eq__(self, other):
-        return self.token_tuple == other.token_tuple
+        return self.token_list == other.token_list
 
     def __str__(self):
-        return str(self.token_tuple)
+        return "({})".format(",".join([str(t) for t in self.token_list]))
+
+    def EmptyIndex(self):
+        for idx, token in enumerate(self.token_list):
+            if token.IsEmpty():
+                return idx
+        return -1
+
+    def InsertToken(self, token):
+        empty_index = self.EmptyIndex()
+        if empty_index == -1:
+            return False
+        else:
+            self.token_list[empty_index] = token
+            return True
+
+    def AppendValue(self, value):
+        empty_index = self.EmptyIndex()
+        if empty_index == -1:
+            return
+        else:
+            for token in value:
+                if token.IsNonEmptyTerminal():
+                    if not self.InsertToken(token):
+                        break
+                else:
+                    break
+
+    def CanAppend(self):
+        empty_index = self.EmptyIndex()
+        return empty_index != -1
+
+    def ExistPlaceHolder(self):
+        return self.CountPlaceHolder() > 0
 
     def CountPlaceHolder(self):
         count = 0
-        for token in self.token_tuple:
+        for token in self.token_list:
             if token.token_type == TokenType.Placeholder:
                 count += 1
         return count
 
+    def PlaceHolderize(self):
+        for idx, token in enumerate(self.token_list):
+            if not token.IsNonEmptyTerminal():
+                self.token_list[idx] = TOKEN_PLACE_HOLD
+
+    @staticmethod
+    def FillWithEmpty(token_list, k):
+        empty_token_list = [TOKEN_EMPTY for _ in range(k - len(token_list))]
+        token_list.extend(empty_token_list)
+        return FirstSetValue(token_list, k)
+
+    @staticmethod
+    def FillWithPlaceHolder(token_list, k):
+        placeholder_token_list = [TOKEN_PLACE_HOLD for _ in range(k - len(token_list))]
+        token_list.extend(placeholder_token_list)
+        return FirstSetValue(token_list, k)
+
 
 class LLK(object):
 
-    def __init__(self, in_tokenizer):
+    def __init__(self, in_tokenizer, k):
         self.tokenizer = in_tokenizer
+        self.k = k
 
         self.ParseProduction()
 
@@ -188,24 +257,101 @@ class LLK(object):
     def GenerateFirstK(self):
         self.first_k = {}
 
-        for left, production in self.productions.items():
-            for idx, reduce in enumerate(production.reduce):
-                if left not in self.first_k:
-                    self.first_k[left] = dict()
-                if idx not in self.first_k[left]:
-                    self.first_k[left][idx] = set()
-                self.first_k[left][idx].update(self.GenerateReductFirstK(reduce))
+        def InnerGenerate():
+            exist_change = False
+            for left, production in self.productions.items():
+                for idx, reduce in enumerate(production.reduce):
+                    if left not in self.first_k:
+                        self.first_k[left] = dict()
+                    if idx not in self.first_k[left]:
+                        self.first_k[left][idx] = set()
+                    before = len(self.first_k[left][idx])
+                    self.first_k[left][idx].update(self.GenerateReductFirstK(reduce))
+                    after = len(self.first_k[left][idx])
+                    if before != after:
+                        exist_change = True
+            return exist_change
+
+        while InnerGenerate():
+            continue
 
     def GenerateReductFirstK(self, reduce):
-        result = set()
-        for token in reduce:
-            if token.IsNonEmptyTerminal():
-                result.add(token)
-                continue
-            if token.IsGenerator():
-                result = self.ExtendFirstK(result, token)
+        per_token_first_k_list = [set() for _ in range(len(reduce))]
+        for idx, token in enumerate(reduce):
+            per_token_first_k_list[idx].update(self.GenerateTokenFirstK(token))
 
-        return result
+        per_token_first_k_list = [list(s) for s in per_token_first_k_list]
+
+        max_index_list = [len(s) - 1 for s in per_token_first_k_list]
+        current_index_list = [-1 for s in per_token_first_k_list]
+
+        def IsReachMax():
+            for current_index, max_index in zip(current_index_list, max_index_list):
+                if current_index < max_index:
+                    return False
+            return True
+
+        def IndexEqual():
+            for idx, max_index in zip(current_index_list, max_index_list):
+                if idx != max_index:
+                    return False
+            return True
+
+        def IndexEqual():
+            for idx, max_index in zip(current_index_list, max_index_list):
+                if idx != max_index:
+                    return False
+            return True
+
+        def IncIndex():
+            if IndexEqual():
+                return
+
+            current_inc_index = len(current_index_list) - 1
+            current_index_list[current_inc_index] += 1
+            while current_index_list[current_inc_index] > max_index_list[current_inc_index] and current_inc_index >= 0:
+                current_index_list[current_inc_index] = 0
+                current_inc_index -= 1
+                if current_inc_index >= 0:
+                    current_index_list[current_inc_index] += 1
+
+        def JoinFirstK():
+            current_first_k = [None for _ in range(len(per_token_first_k_list))]
+            for index in range(len(per_token_first_k_list)):
+                current_first_k[index] = per_token_first_k_list[index][current_index_list[index]]
+
+            current_result_first_k = FirstSetValue.FillWithEmpty([], self.k)
+            for first_k in current_first_k:
+                if current_result_first_k.CanAppend():
+                    current_result_first_k.AppendValue(first_k)
+                    if first_k.ExistPlaceHolder():
+                        break
+                else:
+                    break
+            return current_result_first_k
+
+        reduce_first_k_set = set()
+        while not IsReachMax():
+            reduce_first_k_set.add(JoinFirstK())
+            IncIndex()
+
+        for s in reduce_first_k_set:
+            s.PlaceHolderize()
+        return reduce_first_k_set
+
+    def GenerateTokenFirstK(self, token):
+        result_set = set()
+        if token.IsNonEmptyTerminal():
+            result_set.add(FirstSetValue.FillWithEmpty([token], self.k))
+        elif token.IsEmpty():
+            result_set.add(FirstSetValue.FillWithEmpty([], self.k))
+        else:
+            if token in self.first_k:
+                for idx, first_k_set in self.first_k[token].items():
+                    result_set.update(first_k_set)
+            if len(result_set) == 0:
+                result_set.add(FirstSetValue.FillWithPlaceHolder([], self.k))
+        return result_set
 
     def MergeReduceFirstK(self, left_token):
         pass
@@ -213,9 +359,14 @@ class LLK(object):
     def ExtendFirstK(self, first_k_set, token):
         pass
 
-if __name__ == '__main__':
-    tokenizer = Tokenizer("grammar.txt")
-    llk = LLK(tokenizer)
 
-    for key, production in llk.productions.items():
-        print(str(production))
+if __name__ == '__main__':
+    tokenizer = Tokenizer("grammar_test.txt")
+    llk = LLK(tokenizer, 2)
+    llk.GenerateFirstK()
+    for left, first_k in llk.first_k.items():
+        print(left)
+        for idx, first_k_set in first_k.items():
+            print(idx, [str(v) for v in first_k_set])
+    # for key, production in llk.productions.items():
+    #     print(str(production))

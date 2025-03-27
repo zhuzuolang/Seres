@@ -1,0 +1,16 @@
+
+declaration
+    | variable_declaration
+    | function_declaration
+    | type_declaration
+    | EMPTY
+
+type_declaration
+    | struct_declaration
+    | class_declaration
+    | template_declaration
+
+template_declaration
+    | TEMPLATE '<' template_arg_list '>' variable_declaration
+    | TEMPLATE '<' template_arg_list '>' function_declaration
+    | TEMPLATE '<' template_arg_list '>' type_declaration
