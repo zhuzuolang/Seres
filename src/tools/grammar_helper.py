@@ -122,6 +122,9 @@ class Reduce(object):
     def __len__(self):
         return len(self.reduce_token_list)
 
+    def __getitem__(self, index):
+        return self.reduce_token_list[index]
+
 
 class Production(object):
 
@@ -276,6 +279,11 @@ class LLK(object):
             continue
 
     def GenerateReductFirstK(self, reduce):
+        if len(reduce) == 1 and reduce[0].token_type == TokenType.EMPTY:
+            result_set = set()
+            result_set.add(FirstSetValue.FillWithEmpty([], self.k))
+            return result_set
+
         per_token_first_k_list = [set() for _ in range(len(reduce))]
         for idx, token in enumerate(reduce):
             per_token_first_k_list[idx].update(self.GenerateTokenFirstK(token))
@@ -362,7 +370,7 @@ class LLK(object):
 
 if __name__ == '__main__':
     tokenizer = Tokenizer("grammar_test.txt")
-    llk = LLK(tokenizer, 2)
+    llk = LLK(tokenizer, 4)
     llk.GenerateFirstK()
     for left, first_k in llk.first_k.items():
         print(left)
