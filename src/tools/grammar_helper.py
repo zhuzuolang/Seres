@@ -17,7 +17,7 @@ class Token(object):
         self.token_type = token_type
 
     def __hash__(self):
-        return hash(self.token_str + ":" + str(self.token_type))
+        return hash((self.token_str, str(self.token_type)))
 
     def __eq__(self, other):
         return self.token_type == other.token_type and self.token_str == other.token_str
@@ -202,6 +202,17 @@ class FirstSetValue(object):
                 else:
                     break
 
+    def ExistPrefix(self, prefix):
+        for token_p, token_this in zip(prefix.token_list, self.token_list):
+            if token_p.IsTerminal() and token_this.IsTerminal():
+                if token_p != token_this:
+                    return False
+            elif token_p.IsTerminal() and token_this.IsPlaceHolder():
+                return False
+            else:
+                return True
+        return True
+
     def CanAppend(self):
         empty_index = self.EmptyIndex()
         return empty_index != -1
@@ -277,6 +288,38 @@ class LLK(object):
 
         while InnerGenerate():
             continue
+
+        self.RemovePrefix()
+
+    def RemovePrefix(self):
+        to_remove_first_k_set = {}
+        for left, indexed_first_k_set in self.first_k.items():
+            for idx, first_k_set in indexed_first_k_set.items():
+                if left not in to_remove_first_k_set:
+                    to_remove_first_k_set[left] = dict()
+                if idx not in to_remove_first_k_set[left]:
+                    to_remove_first_k_set[left][idx] = set()
+
+                for i in first_k_set:
+                    for j in first_k_set:
+                        if i != j:
+                            if i.ExistPrefix(j):
+                                to_remove_first_k_set[left][idx].add(j)
+
+        for left, indexed_first_k_set in to_remove_first_k_set.items():
+            for idx, first_k_set in indexed_first_k_set.items():
+                self.first_k[left][idx] = self.DifferenceSet(self.first_k[left][idx], first_k_set)
+
+    def DifferenceSet(self, a, b):
+        result = set()
+        for v1 in a:
+            exist = False
+            for v2 in b:
+                if v1 == v2:
+                    exist = True
+            if not exist:
+                result.add(v1)
+        return result
 
     def GenerateReductFirstK(self, reduce):
         if len(reduce) == 1 and reduce[0].token_type == TokenType.EMPTY:
@@ -370,7 +413,7 @@ class LLK(object):
 
 if __name__ == '__main__':
     tokenizer = Tokenizer("grammar_test.txt")
-    llk = LLK(tokenizer, 4)
+    llk = LLK(tokenizer, 2)
     llk.GenerateFirstK()
     for left, first_k in llk.first_k.items():
         print(left)

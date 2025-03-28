@@ -1,3 +1,4 @@
+
 declaration
     | variable_declaration
     | function_declaration
@@ -30,3 +31,224 @@ class_declaration
 
 block
     | '{' statement '}'
+
+statement
+    | compound_stmt
+    | simple_stmts
+
+simple_stmt
+    | assignment
+    | type_alias
+    | return_stmt
+    | import_stmt
+    | raise_stmt
+    | arithmetic_stmt
+    | PASS
+    | yield_stmt
+    | BREAK
+    | CONTINUE
+
+arithmetic_stmt
+    | bitwise_or
+
+bitwise_or
+    | bitwise_or '|' bitwise_xor
+    | bitwise_xor
+
+bitwise_xor
+    | bitwise_xor '^' bitwise_and
+    | bitwise_and
+
+bitwise_and
+    | bitwise_and '&' shift_expr
+    | shift_expr
+
+shift_expr
+    | shift_expr '<<' sum
+    | shift_expr '>>' sum
+    | sum
+
+sum
+    | sum '+' term
+    | sum '-' term
+    | term
+
+term
+    | term '*' factor
+    | term '/' factor
+    | term '//' factor
+    | term '%' factor
+    | term '@' factor
+    | term ',' factor
+    | factor
+
+factor
+    | '+' factor
+    | '-' factor
+    | '~' factor
+    | '!' factor
+    | power
+
+power
+    | primary '**' factor
+    | primary
+
+primary
+    | primary '[' value_expression ']' //下标运算符
+    | primary '{' value_expression '}' //todo 是否需要大括号运算符?
+    | value_expression
+
+value_expression
+    | ternary
+    | function_call_expression
+    | LITERAL
+    | '(' value_expression ')'
+    | value_expression '.' names
+    | names
+
+ternary
+    | value_expression '?' value_expression ':' value_expression
+
+function_call_expression
+    | names '(' function_call_args_list ')'
+
+assignment
+    | nonempty_named_type_expression_list '=' nonempty_value_expression_list
+    | nonempty_value_expression_list '=' nonempty_value_expression_list
+
+type_alias
+    | USING IDENTIFIER '=' type_expression
+
+return_stmt
+    | RETURN value_expression_list
+
+import_stmt
+    | IMPORT names
+    | IMPORT names AS IDENTIFIER
+    | FROM names IMPORT names AS IDENTIFIER
+
+raise_stmt
+    | RAISE value_expression
+
+compound_stmt
+    | declaration
+    | if_stmt
+    | for_stmt
+    | try_stmt
+    | while_stmt
+    | match_stmt
+
+if_stmt
+    | IF '(' value_expression ')' block else_statement
+
+else_statement
+    | ELSE block
+    | ELIF  block else_statement
+
+for_stmt
+    | FOR '(' value_expression ':' value_expression ')' block
+    | FOR '(' value_expression ';' value_expression ';' value_expression ')' block
+
+try_stmt
+    | TRY block finally_block
+    | TRY block except_block_list
+    | TRY block except_block_list ELSE block
+    | TRY block except_block_list ELSE block FINALLY block
+
+while_stmt
+    | WHILE '(' value_expression ')' block
+    | DO block WHILE '(' value_expression ')'
+
+variable_declaration
+    | type_expression value_expression
+    | type_expression value_expression '=' value_expression
+
+type_expression_list
+    | type_expression ',' type_expression_list
+    | type_expression
+
+type_expression
+    | base_type
+    | compound_type
+    | type_expression '*'
+
+base_type
+    | INTEGER
+    | BOOL
+    | VOID
+
+compound_type
+    | names
+    | template_type
+
+template_type
+    | names '<' type_expression_list '>'
+
+names
+    | IDENTIFIER name_tail
+
+name_tail
+    | EMPTY
+    | '.' names
+    | '::' names
+
+function_declaration
+    | FUNC '[' type_expression_list ']' IDENTIFIER '(' function_declaration_args_list ')' '{' statements '}'
+    | FUNC type_expression IDENTIFIER '(' function_declaration_args_list ')' '{' statements '}'
+    | attribute_declaration function_declaration
+    | decorator_list function_declaration
+
+function_declaration_args_list
+    | named_type_expression ',' function_declaration_args_list
+    | named_type_expression '=' value_expression
+    | named_type_expression
+    | EMPTY
+
+function_call_args_list
+    | value_expression_list ',' function_call_args_list
+    | IDENTIFIER '=' value_expression_list
+    | value_expression_list
+    | EMPTY
+
+attribute_declaration
+    | '(' attribute_list ')'
+
+attribute_list
+    | attribute
+    | attribute ',' attribute_list
+
+attribute
+    | EMPTY
+    | constexpr
+    | inline
+    | pure
+    | compiletime
+
+decorator_list
+    | decorator decorator_list
+    | EMPTY
+
+decorator
+    | '@'names
+    | '@'names '(' value_expression_list ')'
+
+named_type_expression_list
+    | named_type_expression ',' named_type_expression_list
+    | named_type_expression
+    | EMPTY
+
+nonempty_named_type_expression_list
+    | named_type_expression ',' named_type_expression_list
+    | named_type_expression
+
+nonempty_value_expression_list
+    | value_expression
+    | value_expression ',' value_expression_list
+
+value_expression_list
+    | EMPTY
+    | value_expression
+    | value_expression ',' value_expression_list
+
+named_type_expression
+    | type_expression IDENTIFIER
