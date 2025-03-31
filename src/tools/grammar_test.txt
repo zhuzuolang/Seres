@@ -51,36 +51,55 @@ simple_stmt
 arithmetic_stmt
     | bitwise_or
 
+
 bitwise_or
-    | bitwise_or '|' bitwise_xor
-    | bitwise_xor
+    | bitwise_xor bitwise_or_tail
+
+bitwise_or_tail
+    | '|' bitwise_xor bitwise_or_tail
+    | EMPTY
 
 bitwise_xor
-    | bitwise_xor '^' bitwise_and
-    | bitwise_and
+    | bitwise_and bitwise_xor_tail
+
+bitwise_xor_tail
+    | '^' bitwise_and bitwise_xor_tail
+    | EMPTY
 
 bitwise_and
-    | bitwise_and '&' shift_expr
-    | shift_expr
+    | shift_expr bitwise_and_tail
+
+bitwise_and_tail
+    | '&' shift_expr bitwise_and_tail
+    | EMPTY
 
 shift_expr
-    | shift_expr '<<' sum
-    | shift_expr '>>' sum
-    | sum
+    | sum shift_expr_tail
+
+shift_expr_tail
+    | '<<' sum shift_expr_tail
+    | '>>' sum shift_expr_tail
+    | EMPTY
 
 sum
-    | sum '+' term
-    | sum '-' term
-    | term
+    | term sum_tail
+
+sum_tail
+    | '+' term sum_tail
+    | '-' term sum_tail
+    | EMPTY
 
 term
-    | term '*' factor
-    | term '/' factor
-    | term '//' factor
-    | term '%' factor
-    | term '@' factor
-    | term ',' factor
-    | factor
+    | factor term_tail
+
+term_tail
+    | '*' factor term_tail
+    | '/' factor term_tail
+    | '//' factor term_tail
+    | '%' factor term_tail
+    | '@' factor term_tail
+    | ',' factor term_tail
+    | EMPTY
 
 factor
     | '+' factor
@@ -99,15 +118,18 @@ primary
     | value_expression
 
 value_expression
-    | ternary
-    | function_call_expression
-    | LITERAL
-    | '(' value_expression ')'
-    | value_expression '.' names
-    | names
+    | function_call_expression value_expression_tail
+    | LITERAL value_expression_tail
+    | '(' value_expression ')' value_expression_tail
+    | names value_expression_tail
 
-ternary
-    | value_expression '?' value_expression ':' value_expression
+value_expression_tail
+    | '?' value_expression ':' value_expression value_expression_tail
+    | EMPTY
+
+name_expression_tail
+    | '.' names name_expression_tail
+    | EMPTY
 
 function_call_expression
     | names '(' function_call_args_list ')'
@@ -176,6 +198,7 @@ base_type
     | INTEGER
     | BOOL
     | VOID
+    | FLOAT
 
 compound_type
     | names
@@ -219,18 +242,21 @@ attribute_list
 
 attribute
     | EMPTY
-    | constexpr
-    | inline
-    | pure
-    | compiletime
+    | CONST_EXPR
+    | INLINE
+    | PURE
+    | COMPILE_TIME
 
 decorator_list
     | decorator decorator_list
     | EMPTY
 
 decorator
-    | '@'names
-    | '@'names '(' value_expression_list ')'
+    | '@'names decorator_call_list
+
+decorator_call_list
+    | EMPTY
+    | function_call_args_list
 
 named_type_expression_list
     | named_type_expression ',' named_type_expression_list
