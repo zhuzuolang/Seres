@@ -90,16 +90,12 @@ sum_tail
     | EMPTY
 
 term
-    | factor term_tail
-
-term_tail
-    | '*' factor term_tail
-    | '/' factor term_tail
-    | '//' factor term_tail
-    | '%' factor term_tail
-    | '@' factor term_tail
-    | ',' factor term_tail
-    | EMPTY
+    | factor ('*' factor)*
+    | factor ('/' factor)*
+    | factor ('//' factor)*
+    | factor ('%' factor)*
+    | factor ('@' factor)*
+    | factor (',' factor)*
 
 factor
     | '+' factor
@@ -182,8 +178,8 @@ while_stmt
     | DO block WHILE '(' value_expression ')'
 
 variable_declaration
-    | type_expression value_expression
-    | type_expression value_expression '=' value_expression
+    | type_expression IDENTIFIER
+    | type_expression IDENTIFIER '=' value_expression
 
 type_expression_list
     | type_expression ',' type_expression_list
@@ -208,12 +204,8 @@ template_type
     | names '<' type_expression_list '>'
 
 names
-    | IDENTIFIER name_tail
-
-name_tail
-    | EMPTY
-    | '.' names
-    | '::' names
+    | IDENTIFIER ('.' names)*
+    | IDENTIFIER (::' names)*
 
 function_declaration
     | FUNC '[' type_expression_list ']' IDENTIFIER '(' function_declaration_args_list ')' '{' statements '}'
@@ -237,8 +229,7 @@ attribute_declaration
     | '(' attribute_list ')'
 
 attribute_list
-    | attribute
-    | attribute ',' attribute_list
+    | attribute (',' attribute) *
 
 attribute
     | EMPTY

@@ -181,6 +181,15 @@ StringRef llvm::object::getELFRelocationTypeName(uint32_t Machine,
       break;
     }
     break;
+
+    /**modify by zzl */
+  case ELF::EM_Seres:
+    switch (Type) {
+#include "llvm/BinaryFormat/ELFRelocs/Seres.def"
+  default:
+    break;
+    }
+    /**modify by zzl */
   default:
     break;
   }

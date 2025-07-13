@@ -321,6 +321,9 @@ enum {
   EM_VE = 251,            // NEC SX-Aurora VE
   EM_CSKY = 252,          // C-SKY 32-bit processor
   EM_LOONGARCH = 258,     // LoongArch
+  /**modify by zzl */
+  EM_Seres = 999,         //
+  /**modify by zzl */
 };
 
 // Object file classes.
@@ -1017,6 +1020,21 @@ enum : unsigned {
 enum {
 #include "ELFRelocs/Xtensa.def"
 };
+
+/** modify by zzl*/
+// Seres Specific e_flags
+enum {
+  EF_Seres_NOREORDER = 0x00000001, // Don't reorder instructions
+  EF_Seres_PIC       = 0x00000002, // Position independent code
+  EF_Seres_ARCH_32   = 0x50000000, // Seres instruction set per linux not elf.h
+  EF_Seres_ARCH      = 0xf0000000  // Mask for applying EF_Seres_ARCH variant
+};
+
+// ELF Relocation types for Mips
+enum {
+#include "ELFRelocs/Seres.def"
+};
+/** modify by zzl*/
 
 #undef ELF_RELOC
 

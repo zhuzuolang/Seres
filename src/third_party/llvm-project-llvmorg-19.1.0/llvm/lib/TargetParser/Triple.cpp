@@ -86,6 +86,10 @@ StringRef Triple::getArchTypeName(ArchType Kind) {
   case x86_64:         return "x86_64";
   case xcore:          return "xcore";
   case xtensa:         return "xtensa";
+    /**modify by zzl*/
+  case Seres:         return "seres";
+  case Seresel:         return "seresel";
+    /**modify by zzl*/
   }
 
   llvm_unreachable("Invalid ArchType!");
@@ -233,6 +237,11 @@ StringRef Triple::getArchTypePrefix(ArchType Kind) {
   case dxil:        return "dx";
 
   case xtensa:      return "xtensa";
+
+    /**modify by zzl*/
+  case Seres:
+  case Seresel:      return "seres";
+    /**modify by zzl*/
   }
 }
 
@@ -606,6 +615,10 @@ static Triple::ArchType parseArch(StringRef ArchName) {
                  "dxilv1.4", "dxilv1.5", "dxilv1.6", "dxilv1.7", "dxilv1.8",
                  Triple::dxil)
           .Case("xtensa", Triple::xtensa)
+          /**modify by zzl*/
+          .Cases("seres", "sereseb", "seresallegrex", Triple::Seres)
+          .Cases("seresel", "seresallegrexel", Triple::Seres)
+          /**modify by zzl*/
           .Default(Triple::UnknownArch);
 
   // Some architectures require special parsing logic just to compute the
@@ -939,6 +952,10 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
   case Triple::ve:
   case Triple::xcore:
   case Triple::xtensa:
+    /**modify by zzl*/
+  case Triple::Seres:
+  case Triple::Seresel:
+    /**modify by zzl*/
     return Triple::ELF;
 
   case Triple::ppc64:
@@ -1630,6 +1647,10 @@ unsigned Triple::getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
   case llvm::Triple::x86:
   case llvm::Triple::xcore:
   case llvm::Triple::xtensa:
+    /**modify by zzl*/
+  case llvm::Triple::Seres:
+  case llvm::Triple::Seresel:
+    /**modify by zzl*/
     return 32;
 
   case llvm::Triple::aarch64:
@@ -1722,6 +1743,10 @@ Triple Triple::get32BitArchVariant() const {
   case Triple::x86:
   case Triple::xcore:
   case Triple::xtensa:
+    /**modify by zzl*/
+  case Triple::Seres:
+  case Triple::Seresel:
+    /**modify by zzl*/
     // Already 32-bit.
     break;
 

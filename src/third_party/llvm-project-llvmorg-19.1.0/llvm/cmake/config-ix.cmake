@@ -507,6 +507,10 @@ elseif (LLVM_NATIVE_ARCH STREQUAL "m68k")
   set(LLVM_NATIVE_ARCH M68k)
 elseif (LLVM_NATIVE_ARCH MATCHES "loongarch")
   set(LLVM_NATIVE_ARCH LoongArch)
+  #modify by zzl
+elseif (LLVM_NATIVE_ARCH MATCHES "Seres")
+  set(LLVM_NATIVE_ARCH Seres)
+  #modify by zzl
 else ()
   message(FATAL_ERROR "Unknown architecture ${LLVM_NATIVE_ARCH}")
 endif ()

@@ -487,6 +487,9 @@ set(LLVM_ALL_TARGETS
   WebAssembly
   X86
   XCore
+#modify by zzl
+  Seres
+#modify by zzl
   )
 
 set(LLVM_ALL_EXPERIMENTAL_TARGETS

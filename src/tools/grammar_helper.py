@@ -1,4 +1,5 @@
 import os
+from operator import truediv
 
 
 class TokenType(object):
@@ -163,6 +164,7 @@ class FirstSetValue(object):
         token_list = token_list[0:k]
         self.token_list = token_list
         self.k = k
+        self.finish = False
 
     def __iter__(self):
         return iter(self.token_list)
@@ -233,6 +235,14 @@ class FirstSetValue(object):
                 self.token_list[idx] = TOKEN_PLACE_HOLD
 
     @staticmethod
+    def FillWithFinish(token_list, k):
+        empty_token_list = [TOKEN_EMPTY for _ in range(k - len(token_list))]
+        token_list.extend(empty_token_list)
+        result = FirstSetValue(token_list, k)
+        result.finish = True
+        return result
+
+    @staticmethod
     def FillWithEmpty(token_list, k):
         empty_token_list = [TOKEN_EMPTY for _ in range(k - len(token_list))]
         token_list.extend(empty_token_list)
@@ -286,7 +296,10 @@ class LLK(object):
                         exist_change = True
             return exist_change
 
+        iteration = 0
         while InnerGenerate():
+            iteration += 1
+            print("iteration:", iteration)
             continue
 
         self.RemovePrefix()
@@ -387,13 +400,15 @@ class LLK(object):
             IncIndex()
 
         for s in reduce_first_k_set:
-            s.PlaceHolderize()
+            if not s.finish:
+                s.PlaceHolderize()
+
         return reduce_first_k_set
 
     def GenerateTokenFirstK(self, token):
         result_set = set()
         if token.IsNonEmptyTerminal():
-            result_set.add(FirstSetValue.FillWithEmpty([token], self.k))
+            result_set.add(FirstSetValue.FillWithFinish([token], self.k))
         elif token.IsEmpty():
             result_set.add(FirstSetValue.FillWithEmpty([], self.k))
         else:

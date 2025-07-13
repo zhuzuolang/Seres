@@ -1319,6 +1319,10 @@ StringRef ELFObjectFile<ELFT>::getFileFormatName() const {
       return "elf32-loongarch";
     case ELF::EM_XTENSA:
       return "elf32-xtensa";
+      /**modify by zzl */
+  case ELF::EM_Seres:
+      return "elf32-seres";
+      /**modify by zzl */
     default:
       return "elf32-unknown";
     }
@@ -1452,6 +1456,15 @@ template <class ELFT> Triple::ArchType ELFObjectFile<ELFT>::getArch() const {
   case ELF::EM_XTENSA:
     return Triple::xtensa;
 
+    /**modify by zzl */
+  case ELF::EM_Seres:  // llvm-objdump -t -r
+    switch (EF.getHeader().e_ident[ELF::EI_CLASS]) {
+    case ELF::ELFCLASS32:
+      return IsLittleEndian ? Triple::Seresel : Triple::Seres;
+  default:
+    report_fatal_error("Invalid ELFCLASS!");
+    }
+    /**modify by zzl */
   default:
     return Triple::UnknownArch;
   }
